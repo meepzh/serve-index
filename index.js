@@ -27,6 +27,7 @@ var Batch = require('batch');
 var mime = require('mime-types');
 var parseUrl = require('parseurl');
 var resolve = require('path').resolve;
+var querystring = require('querystring');
 
 /**
  * Module exports.
@@ -200,6 +201,7 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
         displayIcons: Boolean(icons),
         fileList: fileList,
         path: path,
+        query: req.query,
         style: style,
         viewName: view
       };
@@ -260,7 +262,7 @@ serveIndex.plain = function _plain (req, res, files, next, dir, showUp, icons, p
  * @private
  */
 
-function createHtmlFileList(files, dir, useIcons, view) {
+function createHtmlFileList(files, dir, useIcons, view, query) {
   var html = '<ul id="files" class="view-' + escapeHtml(view) + '">'
     + (view === 'details' ? (
       '<li class="header">'
@@ -303,6 +305,7 @@ function createHtmlFileList(files, dir, useIcons, view) {
 
     return '<li><a href="'
       + escapeHtml(normalizeSlashes(normalize(path.join('/'))))
+      + (query ? '?' + querystring.stringify(query) : '')
       + '" class="' + escapeHtml(classes.join(' ')) + '"'
       + ' title="' + escapeHtml(file.name) + '">'
       + '<span class="name">' + escapeHtml(file.name) + '</span>'
@@ -328,7 +331,7 @@ function createHtmlRender(template) {
 
       var body = str
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
-        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName))
+        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.query))
         .replace(/\{directory\}/g, escapeHtml(locals.directory))
         .replace(/\{linked-path\}/g, htmlPath(locals.directory));
 
