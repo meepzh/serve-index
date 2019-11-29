@@ -92,6 +92,8 @@ function serveIndex(root, options) {
   // resolve root to absolute and normalize
   var rootPath = normalize(resolve(root) + sep);
 
+  var decrypter = opts.decrypter || (text => text);
+  var encrypter = opts.encrypter || (text => text);
   var filter = opts.filter;
   var hidden = opts.hidden;
   var icons = opts.icons;
@@ -117,6 +119,10 @@ function serveIndex(root, options) {
     // parse URLs
     var originalUrl = parseUrl.original(req);
     var originalDir = decodeURIComponent(originalUrl.pathname);
+
+    // decrypt both dirs
+    dir = decryptPathname(dir, decrypter);
+    originalDir = decryptPathname(originalDir, decrypter);
 
     // join / normalize from root dir
     var path = normalize(join(rootPath, dir));
@@ -165,7 +171,7 @@ function serveIndex(root, options) {
 
         // not acceptable
         if (!type) return next(createError(406));
-        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet);
+        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, encrypter);
       });
     });
   };
@@ -175,7 +181,7 @@ function serveIndex(root, options) {
  * Respond with text/html.
  */
 
-serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet) {
+serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, encrypter) {
   var render = typeof template !== 'function'
     ? createHtmlRender(template)
     : template
@@ -197,6 +203,7 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
 
       // create locals for rendering
       var locals = {
+        encrypter: encrypter,
         directory: dir,
         displayIcons: Boolean(icons),
         fileList: fileList,
@@ -262,7 +269,7 @@ serveIndex.plain = function _plain (req, res, files, next, dir, showUp, icons, p
  * @private
  */
 
-function createHtmlFileList(files, dir, useIcons, view, query) {
+function createHtmlFileList(files, dir, useIcons, view, query, encrypter) {
   var html = '<ul id="files" class="view-' + escapeHtml(view) + '">'
     + (view === 'details' ? (
       '<li class="header">'
@@ -302,10 +309,11 @@ function createHtmlFileList(files, dir, useIcons, view, query) {
     var size = file.stat && !isDir
       ? file.stat.size
       : '';
+    var href = escapeHtml(normalizeSlashes(normalize(path.join('/'))))
+      + (Object.keys(query).length !== 0 ? '?' + querystring.stringify(query) : '');
 
     return '<li><a href="'
-      + escapeHtml(normalizeSlashes(normalize(path.join('/'))))
-      + (Object.keys(query).length !== 0 ? '?' + querystring.stringify(query) : '')
+      + encrypter(href)
       + '" class="' + escapeHtml(classes.join(' ')) + '"'
       + ' title="' + escapeHtml(file.name) + '">'
       + '<span class="name">' + escapeHtml(file.name) + '</span>'
@@ -331,13 +339,28 @@ function createHtmlRender(template) {
 
       var body = str
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
-        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.query))
+        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.query, locals.encrypter))
         .replace(/\{directory\}/g, escapeHtml(locals.directory))
         .replace(/\{linked-path\}/g, htmlPath(locals.directory));
 
       callback(null, body);
     });
   };
+}
+
+/**
+ * Decrypts an encrypted path name.
+ *
+ * @param {String} text
+ * @param {callable} decrypter
+ * @return {String}
+ * @api private
+ */
+
+function decryptPathname(text, decrypter) {
+  if (!text) return text;
+  if (text.startsWith(sep)) text = text.slice(1);
+  return decrypter(text);
 }
 
 /**

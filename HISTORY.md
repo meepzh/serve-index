@@ -5,6 +5,7 @@ unreleased
   * Show font icon for more font types
   * Use 400 error on URI decode failure instead of 500
   * Query parameters are passed in navigation
+  * Path is optionally encrypted
   * deps: accepts@~1.3.7
     - deps: mime-types@~2.1.24
     - deps: negotiator@0.6.2
