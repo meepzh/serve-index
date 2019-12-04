@@ -365,7 +365,7 @@ function createHtmlRender(template) {
 
 function decryptPathname(text, decrypter) {
   if (!text) return text;
-  if (text.startsWith(sep)) text = text.slice(1);
+  if (text.startsWith('/')) text = text.slice(1);
   return decrypter(text);
 }
 
