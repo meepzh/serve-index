@@ -92,6 +92,7 @@ function serveIndex(root, options) {
   // resolve root to absolute and normalize
   var rootPath = normalize(resolve(root) + sep);
 
+  var baseUrlGetter = opts.baseUrlGetter || parseUrl.original;
   var decrypter = opts.decrypter || (text => text);
   var encrypter = opts.encrypter || (text => text);
   var filter = opts.filter;
@@ -117,18 +118,17 @@ function serveIndex(root, options) {
     if (dir === null) return next(createError(400))
 
     // parse URLs
-    var originalUrl = parseUrl.original(req);
+    var originalUrl = baseUrlGetter(req);
     var originalDir = decodeURIComponent(originalUrl.pathname);
 
     // decrypt both dirs
-    dir = decodeURIComponent(decryptPathname(dir, decrypter));
-    originalDir = decodeURIComponent(decryptPathname(originalDir, decrypter));
+    dir = decodeURIComponent(decrypter(dir));
+    originalDir = decodeURIComponent(decrypter(originalDir));
 
     // separate the query
     dir = dir.slice(0, dir.indexOf('?'));
     originalDir = originalDir.slice(0, originalDir.indexOf('?'));
     var query = querystring.parse(originalDir.slice(originalDir.indexOf('?') + 1));
-    console.log('Dir:', dir, ', Original Dir:', originalDir, ', Query:', query)
 
     // join / normalize from root dir
     var path = normalize(join(rootPath, dir));
@@ -352,21 +352,6 @@ function createHtmlRender(template) {
       callback(null, body);
     });
   };
-}
-
-/**
- * Decrypts an encrypted path name.
- *
- * @param {String} text
- * @param {callable} decrypter
- * @return {String}
- * @api private
- */
-
-function decryptPathname(text, decrypter) {
-  if (!text) return text;
-  if (text.startsWith('/')) text = text.slice(1);
-  return decrypter(text);
 }
 
 /**
