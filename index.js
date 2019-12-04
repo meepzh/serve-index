@@ -92,7 +92,8 @@ function serveIndex(root, options) {
   // resolve root to absolute and normalize
   var rootPath = normalize(resolve(root) + sep);
 
-  var baseUrlGetter = opts.baseUrlGetter || parseUrl.original;
+  var parseUrlFunc = opts.parseUrl || parseUrl;
+  var parseOriginalUrl = opts.parseOriginalUrl || parseUrl.original;
   var decrypter = opts.decrypter || (text => text);
   var encrypter = opts.encrypter || (text => text);
   var filter = opts.filter;
@@ -112,23 +113,22 @@ function serveIndex(root, options) {
     }
 
     // get dir
-    var dir = getRequestedDir(req)
+    var dir = getRequestedDir(req, parseUrlFunc)
 
     // bad request
     if (dir === null) return next(createError(400))
 
     // parse URLs
-    var originalUrl = baseUrlGetter(req);
-    var originalDir = decodeURIComponent(originalUrl.pathname);
+    var originalUrl = parseOriginalUrl(req);
 
     // decrypt both dirs
     dir = decodeURIComponent(decrypter(dir));
-    originalDir = decodeURIComponent(decrypter(originalDir));
+    var originalDir = decodeURIComponent(decrypter(originalUrl.pathname));
 
     // separate the query
     dir = dir.slice(0, dir.indexOf('?'));
+    var query = querystring.parse(originalUrl.query || originalDir.slice(originalDir.indexOf('?') + 1));
     originalDir = originalDir.slice(0, originalDir.indexOf('?'));
-    var query = querystring.parse(originalDir.slice(originalDir.indexOf('?') + 1));
 
     // join / normalize from root dir
     var path = normalize(join(rootPath, dir));
@@ -377,9 +377,9 @@ function fileSort(a, b) {
  * @api private
  */
 
-function getRequestedDir (req) {
+function getRequestedDir (req, parseUrlFunc) {
   try {
-    return decodeURIComponent(parseUrl(req).pathname)
+    return decodeURIComponent(parseUrlFunc(req).pathname)
   } catch (e) {
     return null
   }
