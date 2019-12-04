@@ -121,8 +121,14 @@ function serveIndex(root, options) {
     var originalDir = decodeURIComponent(originalUrl.pathname);
 
     // decrypt both dirs
-    dir = decryptPathname(dir, decrypter);
-    originalDir = decryptPathname(originalDir, decrypter);
+    dir = decodeURIComponent(decryptPathname(dir, decrypter));
+    originalDir = decodeURIComponent(decryptPathname(originalDir, decrypter));
+
+    // separate the query
+    dir = dir.slice(0, dir.indexOf('?'));
+    originalDir = originalDir.slice(0, originalDir.indexOf('?'));
+    var query = querystring.parse(originalDir.slice(originalDir.indexOf('?') + 1));
+    console.log('Dir:', dir, ', Original Dir:', originalDir, ', Query:', query)
 
     // join / normalize from root dir
     var path = normalize(join(rootPath, dir));
@@ -171,7 +177,7 @@ function serveIndex(root, options) {
 
         // not acceptable
         if (!type) return next(createError(406));
-        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, encrypter);
+        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, query, encrypter);
       });
     });
   };
@@ -181,7 +187,7 @@ function serveIndex(root, options) {
  * Respond with text/html.
  */
 
-serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, encrypter) {
+serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, query, encrypter) {
   var render = typeof template !== 'function'
     ? createHtmlRender(template)
     : template
@@ -208,7 +214,7 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
         displayIcons: Boolean(icons),
         fileList: fileList,
         path: path,
-        query: req.query,
+        query: query,
         style: style,
         viewName: view
       };
