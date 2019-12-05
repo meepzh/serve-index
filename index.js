@@ -349,7 +349,7 @@ function createHtmlRender(template) {
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
         .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.query, locals.encrypter))
         .replace(/\{directory\}/g, locals.showDirectoryTitle ? escapeHtml(locals.directory) : '')
-        .replace(/\{linked-path\}/g, htmlPath(locals.directory, locals.encrypter));
+        .replace(/\{linked-path\}/g, htmlPath(locals.directory, locals.query, locals.encrypter));
 
       callback(null, body);
     });
@@ -391,7 +391,7 @@ function getRequestedDir (req, parseUrlFunc) {
  * Map html `dir`, returning a linked path.
  */
 
-function htmlPath(dir, encrypter) {
+function htmlPath(dir, query, encrypter) {
   var parts = dir.split('/');
   var crumb = new Array(parts.length);
 
@@ -400,7 +400,9 @@ function htmlPath(dir, encrypter) {
 
     if (part) {
       parts[i] = encodeURIComponent(part);
-      crumb[i] = '<a href="' + encrypter(escapeHtml(parts.slice(0, i + 1).join('/'))) + '">' + escapeHtml(part) + '</a>';
+      var href = escapeHtml(parts.slice(0, i + 1).join('/'))
+        + (Object.keys(query).length !== 0 ? '?' + querystring.stringify(query) : '');
+      crumb[i] = '<a href="' + encrypter(href) + '">' + escapeHtml(part) + '</a>';
     }
   }
 
