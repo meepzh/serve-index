@@ -99,6 +99,7 @@ function serveIndex(root, options) {
   var filter = opts.filter;
   var hidden = opts.hidden;
   var icons = opts.icons;
+  var showDirectoryTitle = opts.showDirectoryTitle !== false;
   var stylesheet = opts.stylesheet || defaultStylesheet;
   var template = opts.template || defaultTemplate;
   var view = opts.view || 'tiles';
@@ -177,7 +178,7 @@ function serveIndex(root, options) {
 
         // not acceptable
         if (!type) return next(createError(406));
-        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, query, encrypter);
+        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, query, encrypter, showDirectoryTitle);
       });
     });
   };
@@ -187,7 +188,7 @@ function serveIndex(root, options) {
  * Respond with text/html.
  */
 
-serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, query, encrypter) {
+serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, query, encrypter, showDirectoryTitle) {
   var render = typeof template !== 'function'
     ? createHtmlRender(template)
     : template
@@ -215,6 +216,7 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
         fileList: fileList,
         path: path,
         query: query,
+        showDirectoryTitle: showDirectoryTitle,
         style: style,
         viewName: view
       };
@@ -346,7 +348,7 @@ function createHtmlRender(template) {
       var body = str
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
         .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.query, locals.encrypter))
-        .replace(/\{directory\}/g, escapeHtml(locals.directory))
+        .replace(/\{directory\}/g, locals.showDirectoryTitle ? escapeHtml(locals.directory) : '')
         .replace(/\{linked-path\}/g, htmlPath(locals.directory));
 
       callback(null, body);
